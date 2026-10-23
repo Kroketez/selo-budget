@@ -1,9 +1,20 @@
 # Selo — monthly budget tracker
 
+[![Test and deploy](https://github.com/Kroketez/selo-budget/actions/workflows/deploy.yml/badge.svg)](https://github.com/Kroketez/selo-budget/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**[Live demo →](https://kroketez.github.io/selo-budget/)**
+
 A personal budget tracker built around one question: **how much can I still spend this month?**
 Every category budget is drawn as a postage stamp whose face value is what's left. Go over, and the stamp gets a postmark.
 
-Built with **React 19 + TypeScript + Vite**. No backend: data lives in `localStorage`, and sample data loads on first visit.
+Built with **React 19 + TypeScript + Vite**, tested with **Playwright**. No backend: data lives in `localStorage`, and sample data loads on first visit.
+
+<p>
+  <img src="docs/desktop.png" alt="Selo on desktop: red sidebar with months, €688.78 left to spend in October, a sheet of eight colored category stamps with one cancelled by a postmark, and the transaction list" width="74%">
+  &nbsp;
+  <img src="docs/mobile.png" alt="Selo on a phone: month switcher in a red top bar, the left-to-spend figure, a summary and the first category stamps" width="22%">
+</p>
 
 ## Features
 
@@ -29,6 +40,19 @@ Build for production (outputs to `dist/`, uses relative paths so it works on Git
 ```bash
 npm run build
 ```
+
+## Tests
+
+End-to-end tests in [`tests/`](tests/budget.spec.ts) cover adding, validating, editing, deleting with undo, filtering, budget editing, month navigation, saving and resetting — on both a desktop and a phone viewport. The clock is frozen, so results don't depend on today's date.
+
+```bash
+npx playwright install chromium   # first time only
+npm test
+```
+
+GitHub Actions runs the linter and the tests on every push and pull request. The site only deploys when they pass.
+
+To refresh the README screenshots: `npm run screenshots`.
 
 ## Ship a change
 

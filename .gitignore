@@ -27,3 +27,7 @@ dist-ssr
 .playwright-cli
 .impeccable
 .claude
+
+# Playwright
+test-results
+playwright-report

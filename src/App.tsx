@@ -4,7 +4,7 @@ import type { MonthKey, Transaction } from './types'
 import { useBudgetStore } from './store'
 import { CATEGORY_BY_ID, EXPENSE_CATEGORIES, defaultDateFor } from './data'
 import {
-  currentMonth,
+  toDateKey,
   daysInMonth,
   formatMoney,
   monthName,
@@ -27,7 +27,9 @@ type ComposerState = { mode: 'closed' } | { mode: 'new' } | { mode: 'edit'; tx: 
 
 export default function App() {
   const [state, dispatch] = useBudgetStore()
-  const now = currentMonth()
+  // Read the clock once per page load, not on every render.
+  const [todayDate] = useState(() => new Date())
+  const now = monthOf(toDateKey(todayDate))
   const [month, setMonth] = useState<MonthKey>(now)
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -156,7 +158,7 @@ export default function App() {
 
   // Pace: how much per day for the rest of the month.
   const isCurrent = month === now
-  const today = new Date().getDate()
+  const today = todayDate.getDate()
   const daysLeft = isCurrent ? daysInMonth(month) - today + 1 : 0
   const pace =
     month > now
