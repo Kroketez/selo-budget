@@ -30,6 +30,17 @@ Build for production (outputs to `dist/`, uses relative paths so it works on Git
 npm run build
 ```
 
+## Ship a change
+
+Build, commit everything and push to GitHub in one command. The site at
+https://kroketez.github.io/selo-budget/ redeploys automatically.
+
+```bash
+npm run ship "what you changed"
+```
+
+If the build fails, nothing is committed or pushed.
+
 ## Project structure
 
 ```
