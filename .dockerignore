@@ -1,0 +1,12 @@
+node_modules
+dist
+data
+.git
+.github
+.claude
+.impeccable
+.playwright-cli
+test-results
+playwright-report
+docs
+*.log

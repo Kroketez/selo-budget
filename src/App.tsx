@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, PencilLine } from 'lucide-react'
 import type { MonthKey, Transaction } from './types'
-import { useBudgetStore } from './store'
+import { useBudgetStore, type Storage } from './store'
 import { CATEGORY_BY_ID, EXPENSE_CATEGORIES, defaultDateFor } from './data'
 import {
   toDateKey,
@@ -23,10 +23,17 @@ interface Toast {
   undo?: () => void
 }
 
+const STORAGE_NOTES: Record<Storage, string> = {
+  checking: "Loading your data…",
+  server: "Saved to the database.",
+  local: "Sample data, saved only in this browser.",
+  offline: "Can’t reach the server. New changes aren’t saved.",
+}
+
 type ComposerState = { mode: 'closed' } | { mode: 'new' } | { mode: 'edit'; tx: Transaction }
 
 export default function App() {
-  const [state, dispatch] = useBudgetStore()
+  const [state, dispatch, storage] = useBudgetStore()
   // Read the clock once per page load, not on every render.
   const [todayDate] = useState(() => new Date())
   const now = monthOf(toDateKey(todayDate))
@@ -185,6 +192,7 @@ export default function App() {
         onSelect={selectMonth}
         onAdd={openNew}
         onReset={handleReset}
+        storageNote={STORAGE_NOTES[storage]}
       />
 
       <main className="main" id="main">
@@ -300,7 +308,7 @@ export default function App() {
             onAdd={openNew}
           />
           <div className="foot-mobile">
-            <p>Sample data, saved only in this browser.</p>
+            <p>{STORAGE_NOTES[storage]}</p>
             <button type="button" onClick={handleReset}>
               Reset sample data
             </button>
@@ -309,6 +317,11 @@ export default function App() {
       </main>
 
       <div className="toast-region" role="status" aria-live="polite">
+        {storage === 'offline' && !toast && (
+          <div className="toast toast-warn">
+            <span>{STORAGE_NOTES.offline} Reload once it’s back.</span>
+          </div>
+        )}
         {toast && (
           <div className="toast" key={toast.id}>
             <span>{toast.message}</span>

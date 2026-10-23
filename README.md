@@ -8,7 +8,12 @@
 A personal budget tracker built around one question: **how much can I still spend this month?**
 Every category budget is drawn as a postage stamp whose face value is what's left. Go over, and the stamp gets a postmark.
 
-Built with **React 19 + TypeScript + Vite**, tested with **Playwright**. No backend: data lives in `localStorage`, and sample data loads on first visit.
+Built with **React 19 + TypeScript + Vite**, a dependency-free **Node.js + SQLite** API, **Docker**, and tested with **Playwright**.
+
+- **With the server** (Docker or `npm run server`): data is saved in a SQLite database.
+- **Without it** (like the GitHub Pages demo): the app falls back to `localStorage`.
+
+The sidebar always says where your data is being saved. Sample data loads on first visit.
 
 <p>
   <img src="docs/desktop.png" alt="Selo on desktop: red sidebar with months, €688.78 left to spend in October, a sheet of eight colored category stamps with one cancelled by a postmark, and the transaction list" width="74%">
@@ -28,12 +33,46 @@ Built with **React 19 + TypeScript + Vite**, tested with **Playwright**. No back
 - Keyboard shortcut: press **N** to add a transaction
 - Responsive from phone to desktop, accessible labels and focus states, respects reduced motion
 
-## Run it
+## Run with Docker (saves to a database)
+
+```bash
+docker compose up -d --build
+```
+
+Open http://localhost:8080. The database lives in the `selo-data` Docker volume, so your data survives restarts and rebuilds. Stop with `docker compose down` (add `-v` only if you want to delete the data).
+
+### API
+
+| Method | Path | Does |
+| --- | --- | --- |
+| `GET` | `/api/state` | All transactions and budgets |
+| `PUT` | `/api/state` | Replace everything (used for seeding and reset) |
+| `POST` | `/api/transactions` | Add a transaction |
+| `PUT` | `/api/transactions/:id` | Update a transaction |
+| `DELETE` | `/api/transactions/:id` | Delete a transaction |
+| `PUT` | `/api/budgets/:categoryId` | Set a category budget |
+| `GET` | `/api/health` | Health check |
+
+## Run it for development
 
 ```bash
 npm install
 npm run dev
 ```
+
+That uses browser storage. To develop against the database, run the API in one terminal and Vite in another:
+
+```bash
+npm run server
+```
+
+```bash
+API_URL=http://localhost:3001 npm run dev
+```
+
+On Windows PowerShell, set the variable first: `$env:API_URL="http://localhost:3001"; npm run dev`.
+
+API tests: `npm run test:api`.
 
 Build for production (outputs to `dist/`, uses relative paths so it works on GitHub Pages):
 
@@ -68,9 +107,12 @@ If the build fails, nothing is committed or pushed.
 ## Project structure
 
 ```
+server/
+  server.mjs              API + static server (Node http + built-in SQLite)
+  server.test.mjs         API tests
 src/
   App.tsx                 main screen and state wiring
-  store.ts                reducer + localStorage persistence
+  store.ts                state, API sync and localStorage fallback
   data.ts                 categories, default budgets, sample data
   format.ts               money and date helpers
   useTicker.ts            animated number hook

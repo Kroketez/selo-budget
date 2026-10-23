@@ -9,9 +9,10 @@ interface RailProps {
   onSelect: (m: MonthKey) => void
   onAdd: () => void
   onReset: () => void
+  storageNote: string
 }
 
-export function Rail({ months, selected, current, onSelect, onAdd, onReset }: RailProps) {
+export function Rail({ months, selected, current, onSelect, onAdd, onReset, storageNote }: RailProps) {
   const first = months[0]?.key
   const last = months[months.length - 1]?.key
   return (
@@ -77,7 +78,7 @@ export function Rail({ months, selected, current, onSelect, onAdd, onReset }: Ra
       </button>
 
       <div className="rail-foot">
-        <p>Sample data, saved only in this browser.</p>
+        <p aria-live="polite">{storageNote}</p>
         <button type="button" onClick={onReset}>
           <RotateCcw size={14} strokeWidth={2.25} aria-hidden="true" />
           Reset sample data

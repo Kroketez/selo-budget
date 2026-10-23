@@ -1023,3 +1023,6 @@ button.stamp-face:hover {
     transform: none;
   }
 }
+.toast-warn {
+  background: var(--red);
+}

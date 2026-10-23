@@ -1,0 +1,14 @@
+services:
+  selo:
+    build: .
+    image: selo-budget
+    container_name: selo
+    ports:
+      - "8080:8080"
+    volumes:
+      # The SQLite database lives here, so data survives restarts and rebuilds.
+      - selo-data:/data
+    restart: unless-stopped
+
+volumes:
+  selo-data:

@@ -10,6 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "playwright test",
+    "test:api": "node --test server/server.test.mjs",
+    "server": "node server/server.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "ship": "node scripts/ship.mjs"
   },
