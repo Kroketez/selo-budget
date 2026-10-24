@@ -128,7 +128,7 @@ function Logo() {
       </defs>
       <rect width="36" height="44" fill="#fff" mask="url(#logo-perf)" />
       <rect x="6" y="6" width="24" height="32" fill="#D7202C" />
-      <text x="18" y="29" textAnchor="middle" fill="#fff" fontSize="15" fontWeight="800" fontFamily="Archivo Variable, sans-serif">
+      <text x="18" y="29" textAnchor="middle" fill="#fff" fontSize="15" fontWeight="800" fontFamily="Big Shoulders Display Variable, sans-serif">
         €
       </text>
     </svg>

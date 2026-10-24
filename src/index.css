@@ -10,8 +10,8 @@
   --line: #d6d2c6;
   --green: #1d7346;
 
-  --font: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
-  --narrow: 64%;
+  --font: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+  --font-display: 'Big Shoulders Display Variable', 'Arial Narrow', sans-serif;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --radius: 6px;
 
@@ -21,7 +21,6 @@
   line-height: 1.45;
   color: var(--ink);
   background: var(--ground);
-  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   scrollbar-color: #b9b4a6 var(--ground);
 }
@@ -116,7 +115,8 @@ button {
   gap: 12px;
   padding-inline: 6px;
   font-weight: 800;
-  font-stretch: 75%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   font-size: 1.75rem;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -126,7 +126,7 @@ button {
   margin-top: 4px;
   font-size: 0.8125rem;
   font-weight: 500;
-  font-stretch: 100%;
+  font-family: var(--font);
   letter-spacing: 0;
   color: var(--red-tint);
 }
@@ -176,7 +176,8 @@ button {
   vertical-align: 1px;
 }
 .months-left {
-  font-stretch: 80%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 .months-left.is-neg {
   color: #fff;
@@ -264,7 +265,8 @@ h1 {
 .figure {
   font-size: clamp(3.75rem, 7.2vw, 6rem);
   font-weight: 800;
-  font-stretch: var(--narrow);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   line-height: 0.88;
   letter-spacing: -0.02em;
 }
@@ -296,7 +298,8 @@ h1.is-over .figure {
 .summary dd {
   font-size: 1.75rem;
   font-weight: 700;
-  font-stretch: 85%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 .is-in {
   color: var(--green);
@@ -382,7 +385,8 @@ h2 {
   align-self: end;
   font-size: clamp(2.25rem, 3.4vw, 2.9rem);
   font-weight: 800;
-  font-stretch: 62%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   line-height: 0.9;
   letter-spacing: -0.01em;
 }
@@ -460,7 +464,7 @@ button.stamp-face:hover {
 .postmark-text {
   fill: #17181b;
   stroke: none;
-  font: 800 8.5px var(--font);
+  font: 800 9px var(--font-display);
   letter-spacing: 0.08em;
 }
 .postmark .wave {
@@ -636,7 +640,8 @@ button.stamp-face:hover {
 .money-input span {
   font-size: 1.5rem;
   font-weight: 700;
-  font-stretch: 70%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   color: var(--ink-2);
 }
 .field .money-input input {
@@ -646,7 +651,8 @@ button.stamp-face:hover {
   outline: none;
   font-size: 2rem;
   font-weight: 800;
-  font-stretch: 70%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 .field-error {
   color: var(--red);
@@ -831,7 +837,8 @@ button.stamp-face:hover {
 }
 .tx-date b {
   font-size: 0.9375rem;
-  font-stretch: 75%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
   letter-spacing: 0;
   margin-bottom: 1px;
@@ -861,7 +868,8 @@ button.stamp-face:hover {
 }
 .tx-amt {
   font-weight: 700;
-  font-stretch: 85%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 .tx-amt.is-in {
   color: var(--green);
@@ -1212,7 +1220,8 @@ button.stamp-face:hover {
 .monthly-day {
   font-size: 1rem;
   font-weight: 800;
-  font-stretch: 75%;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
   color: var(--ink-2);
 }
 .monthly-desc {
