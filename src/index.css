@@ -184,12 +184,18 @@ button {
   text-underline-offset: 4px;
 }
 
-.add-btn {
+.add-group {
   margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.add-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 14px;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 10px;
   border: 0;
   border-radius: var(--radius);
   background: #fff;
@@ -277,8 +283,8 @@ h1.is-over .figure {
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, max-content));
-  gap: 12px 40px;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 12px 56px;
   margin-top: 28px;
   padding-block: 18px;
   border-block: 1px solid var(--line);
@@ -288,7 +294,7 @@ h1.is-over .figure {
   color: var(--ink-2);
 }
 .summary dd {
-  font-size: 1.375rem;
+  font-size: 1.75rem;
   font-weight: 700;
   font-stretch: 85%;
 }
@@ -302,7 +308,8 @@ h1.is-over .figure {
 .budgets {
   margin-top: 40px;
 }
-.budgets-head {
+.budgets-head,
+.section-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -314,7 +321,8 @@ h2 {
   font-weight: 750;
   line-height: 1.2;
 }
-.budgets-note {
+.budgets-note,
+.section-note {
   flex: 1 1 220px;
   color: var(--ink-2);
   font-size: 0.9375rem;
@@ -324,7 +332,7 @@ h2 {
 
 .sheet {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding: 18px;
   background: var(--sheet);
@@ -356,7 +364,7 @@ h2 {
   grid-template-rows: auto 1fr auto auto;
   gap: 4px;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 5 / 4;
   padding: 12px 12px 12px;
   border: 0;
   border-radius: 0;
@@ -648,13 +656,14 @@ button.stamp-face:hover {
 
 .composer-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 4px;
 }
 .spacer {
   flex: 1;
-  min-width: 16px;
+  min-width: 0;
 }
 
 .btn {
@@ -945,6 +954,7 @@ button.stamp-face:hover {
     padding: 0;
   }
   .brand small,
+  .brand > span,
   .months,
   .rail-foot,
   .add-btn span,
@@ -972,6 +982,11 @@ button.stamp-face:hover {
   .month-stepper .icon-btn:hover:not(:disabled) {
     background: rgb(0 0 0 / 0.15);
   }
+  .add-group {
+    margin: 0;
+    grid-template-columns: auto auto;
+    gap: 6px;
+  }
   .add-btn {
     margin: 0;
     width: 44px;
@@ -988,6 +1003,12 @@ button.stamp-face:hover {
   .summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 20px;
+  }
+  .summary dd {
+    font-size: 1.375rem;
+  }
+  .stamp-face {
+    aspect-ratio: 1 / 1;
   }
   .sheet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1025,4 +1046,197 @@ button.stamp-face:hover {
 }
 .toast-warn {
   background: var(--red);
+}
+
+/* ───────────────── Simpler form ───────────────── */
+
+.cat-picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.cat-picker legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cat-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid #b8b3a6;
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+.cat-chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.cat-chip .cat-swatch {
+  color: var(--hue);
+  flex: none;
+}
+.cat-chip:hover {
+  border-color: var(--ink-2);
+}
+.cat-chip.is-on {
+  background: var(--hue);
+  border-color: var(--hue);
+  color: var(--stamp-ink);
+}
+.cat-chip.is-on .cat-swatch {
+  color: currentColor;
+}
+.cat-chip:has(:focus-visible) {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.optional {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+.field-hint svg {
+  flex: none;
+}
+
+.repeat-toggle {
+  align-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #b8b3a6;
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.repeat-toggle:has(:checked) {
+  border-color: var(--ink);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.repeat-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--ink);
+}
+.repeat-toggle small {
+  display: block;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* ───────────────── List tags ───────────────── */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tag-soft {
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px #b8b3a6;
+}
+.tx.is-upcoming .tx-desc,
+.tx.is-upcoming .tx-amt {
+  color: var(--ink-2);
+}
+.tx.is-upcoming .tx-date {
+  border-style: dashed;
+}
+
+/* ───────────────── Every month ───────────────── */
+
+.monthly {
+  margin-top: 40px;
+}
+.monthly-list {
+  display: grid;
+  gap: 8px;
+}
+.monthly-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  text-align: left;
+  transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+.monthly-row:hover {
+  border-color: var(--ink-2);
+  box-shadow: 0 3px 10px rgb(40 30 10 / 0.08);
+}
+.monthly-day {
+  font-size: 1rem;
+  font-weight: 800;
+  font-stretch: 75%;
+  color: var(--ink-2);
+}
+.monthly-desc {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.monthly-desc small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.monthly-desc small i {
+  width: 8px;
+  height: 10px;
+  flex: none;
+}
+.monthly-icon {
+  color: var(--ink-2);
 }

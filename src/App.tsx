@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, PencilLine } from 'lucide-react'
-import type { MonthKey, Transaction } from './types'
+import type { MonthKey, Recurring, Transaction, TxType } from './types'
 import { useBudgetStore, type Storage } from './store'
-import { CATEGORY_BY_ID, EXPENSE_CATEGORIES, defaultDateFor } from './data'
+import { CATEGORY_BY_ID, EXPENSE_CATEGORIES, defaultDateFor, recurringFor } from './data'
 import {
   toDateKey,
   daysInMonth,
@@ -14,7 +14,8 @@ import {
 import { useTicker } from './useTicker'
 import { Rail } from './components/Rail'
 import { Stamp } from './components/Stamp'
-import { Composer } from './components/Composer'
+import { Composer, type ComposerResult, type ComposerTarget } from './components/Composer'
+import { MonthlyList } from './components/MonthlyList'
 import { TransactionList, type TypeFilter } from './components/TransactionList'
 
 interface Toast {
@@ -30,18 +31,17 @@ const STORAGE_NOTES: Record<Storage, string> = {
   offline: "Can’t reach the server. New changes aren’t saved.",
 }
 
-type ComposerState = { mode: 'closed' } | { mode: 'new' } | { mode: 'edit'; tx: Transaction }
-
 export default function App() {
   const [state, dispatch, storage] = useBudgetStore()
   // Read the clock once per page load, not on every render.
   const [todayDate] = useState(() => new Date())
-  const now = monthOf(toDateKey(todayDate))
+  const todayKey = toDateKey(todayDate)
+  const now = monthOf(todayKey)
   const [month, setMonth] = useState<MonthKey>(now)
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
-  const [composer, setComposer] = useState<ComposerState>({ mode: 'closed' })
+  const [composer, setComposer] = useState<ComposerTarget | null>(null)
   const [composerKey, setComposerKey] = useState(0)
   const [editingBudgets, setEditingBudgets] = useState(false)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -63,20 +63,24 @@ export default function App() {
     }
     const list: { key: MonthKey; left: number }[] = []
     for (let m = start; m <= end; m = shiftMonth(m, 1)) {
-      const spent = state.transactions
-        .filter((t) => t.type === 'expense' && monthOf(t.date) === m)
+      const spent = [...state.transactions.filter((t) => monthOf(t.date) === m), ...recurringFor(state.recurring, m)]
+        .filter((t) => t.type === 'expense')
         .reduce((s, t) => s + t.amount, 0)
       list.push({ key: m, left: totalBudget - spent })
     }
     return list
-  }, [state.transactions, now, totalBudget])
+  }, [state.transactions, state.recurring, now, totalBudget])
 
   const monthTx = useMemo(
     () =>
-      state.transactions
-        .filter((t) => monthOf(t.date) === month)
+      [...state.transactions.filter((t) => monthOf(t.date) === month), ...recurringFor(state.recurring, month)]
         .sort((a, b) => (a.date === b.date ? b.amount - a.amount : b.date.localeCompare(a.date))),
-    [state.transactions, month],
+    [state.transactions, state.recurring, month],
+  )
+
+  const monthlyItems = useMemo(
+    () => state.recurring.filter((r) => r.startMonth <= month && (r.endMonth === null || month <= r.endMonth)),
+    [state.recurring, month],
   )
 
   const totals = useMemo(() => {
@@ -114,20 +118,27 @@ export default function App() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const openNew = useCallback(() => {
-    setComposer({ mode: 'new' })
+  const openComposer = useCallback((target: ComposerTarget) => {
+    setComposer(target)
     setComposerKey((k) => k + 1)
     requestAnimationFrame(() => sideRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
   }, [])
 
-  // "N" opens a new transaction from anywhere except while typing.
+  const openNew = useCallback(
+    (type: TxType, repeat = false) => openComposer({ kind: 'new', type, repeat }),
+    [openComposer],
+  )
+
+  // "N" adds an expense and "I" an income, from anywhere except while typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement
       const typing = el.closest('input, textarea, select, [contenteditable="true"]')
-      if (!typing && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'n') {
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return
+      const key = e.key.toLowerCase()
+      if (key === 'n' || key === 'i') {
         e.preventDefault()
-        openNew()
+        openNew(key === 'i' ? 'income' : 'expense')
       }
     }
     window.addEventListener('keydown', onKey)
@@ -136,21 +147,50 @@ export default function App() {
 
   function selectMonth(m: MonthKey) {
     setMonth(m)
-    setComposer({ mode: 'closed' })
+    setComposer(null)
   }
 
-  function handleSave(tx: Transaction, isNew: boolean) {
-    dispatch({ type: isNew ? 'add' : 'update', tx })
-    setComposer({ mode: 'closed' })
-    const m = monthOf(tx.date)
-    if (m !== month) setMonth(m)
-    showToast(isNew ? `Added “${tx.description}”.` : `Saved “${tx.description}”.`)
+  function handleSave(result: ComposerResult) {
+    setComposer(null)
+    if (result.kind === 'tx') {
+      const { tx, isNew } = result
+      dispatch({ type: isNew ? 'add' : 'update', tx })
+      const m = monthOf(tx.date)
+      if (m !== month) setMonth(m)
+      showToast(isNew ? `Added “${tx.description}”.` : `Saved “${tx.description}”.`)
+    } else {
+      const { item, isNew } = result
+      dispatch({ type: isNew ? 'addRecurring' : 'updateRecurring', item })
+      if (isNew && item.startMonth > month) setMonth(item.startMonth)
+      showToast(
+        isNew ? `“${item.description}” now repeats every month.` : `Saved “${item.description}” for every month.`,
+      )
+    }
   }
 
   function handleDelete(tx: Transaction) {
     dispatch({ type: 'delete', id: tx.id })
-    setComposer({ mode: 'closed' })
+    setComposer(null)
     showToast(`Deleted “${tx.description}”.`, () => dispatch({ type: 'restore', tx }))
+  }
+
+  // Stop a monthly item from the month being viewed. Earlier months keep it.
+  function handleStopRecurring(item: Recurring) {
+    setComposer(null)
+    if (item.startMonth >= month) {
+      dispatch({ type: 'deleteRecurring', id: item.id })
+      showToast(`Removed “${item.description}”.`, () => dispatch({ type: 'addRecurring', item }))
+    } else {
+      dispatch({ type: 'updateRecurring', item: { ...item, endMonth: shiftMonth(month, -1) } })
+      showToast(`“${item.description}” stops from ${monthName(month)}.`, () =>
+        dispatch({ type: 'updateRecurring', item }),
+      )
+    }
+  }
+
+  function editRow(tx: Transaction) {
+    const item = tx.recurringId ? state.recurring.find((r) => r.id === tx.recurringId) : null
+    openComposer(item ? { kind: 'recurring', item } : { kind: 'tx', tx })
   }
 
   function handleReset() {
@@ -159,7 +199,7 @@ export default function App() {
     setCategoryFilter(null)
     setQuery('')
     setTypeFilter('all')
-    setComposer({ mode: 'closed' })
+    setComposer(null)
     showToast('Sample data restored.')
   }
 
@@ -208,22 +248,12 @@ export default function App() {
 
           <dl className="summary">
             <div>
-              <dt>Income</dt>
-              <dd className="is-in">{formatMoney(totals.income)}</dd>
+              <dt>Income this month</dt>
+              <dd className="is-in">+{formatMoney(totals.income)}</dd>
             </div>
             <div>
-              <dt>Spent</dt>
-              <dd>{formatMoney(totals.spent)}</dd>
-            </div>
-            <div>
-              <dt>Budgeted</dt>
-              <dd>{formatMoney(totalBudget)}</dd>
-            </div>
-            <div>
-              <dt>Saved</dt>
-              <dd className={totals.income - totals.spent < 0 ? 'is-neg' : ''}>
-                {formatMoney(totals.income - totals.spent)}
-              </dd>
+              <dt>Expenses this month</dt>
+              <dd>−{formatMoney(totals.spent)}</dd>
             </div>
           </dl>
 
@@ -269,18 +299,26 @@ export default function App() {
               ))}
             </ul>
           </section>
+
+          <MonthlyList
+            items={monthlyItems}
+            monthLabel={label}
+            onEdit={(item) => openComposer({ kind: 'recurring', item })}
+            onAdd={() => openNew('expense', true)}
+          />
         </section>
 
         <aside className="side" ref={sideRef} aria-label="Transactions">
-          {composer.mode !== 'closed' && (
+          {composer && (
             <Composer
-              key={composer.mode === 'edit' ? composer.tx.id : `new-${composerKey}`}
-              editing={composer.mode === 'edit' ? composer.tx : null}
+              key={composerKey}
+              target={composer}
               defaultDate={defaultDateFor(month)}
               presetCategory={categoryFilter}
               onSave={handleSave}
-              onDelete={handleDelete}
-              onClose={() => setComposer({ mode: 'closed' })}
+              onDeleteTx={handleDelete}
+              onStopRecurring={handleStopRecurring}
+              onClose={() => setComposer(null)}
             />
           )}
           <TransactionList
@@ -290,7 +328,14 @@ export default function App() {
             typeFilter={typeFilter}
             categoryFilter={categoryFilter}
             monthLabel={label}
-            selectedId={composer.mode === 'edit' ? composer.tx.id : null}
+            selectedId={
+              composer?.kind === 'tx'
+                ? composer.tx.id
+                : composer?.kind === 'recurring'
+                  ? `rec-${composer.item.id}-${month}`
+                  : null
+            }
+            today={todayKey}
             onQuery={setQuery}
             onTypeFilter={setTypeFilter}
             onClearCategory={() => setCategoryFilter(null)}
@@ -299,13 +344,8 @@ export default function App() {
               setTypeFilter('all')
               setCategoryFilter(null)
             }}
-            onSelect={(tx) => {
-              setComposer({ mode: 'edit', tx })
-              requestAnimationFrame(() =>
-                sideRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
-              )
-            }}
-            onAdd={openNew}
+            onSelect={editRow}
+            onAdd={() => openNew('expense')}
           />
           <div className="foot-mobile">
             <p>{STORAGE_NOTES[storage]}</p>

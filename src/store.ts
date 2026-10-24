@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import type { State, Transaction } from './types'
-import { createDemoState } from './data'
+import type { Recurring, State, Transaction } from './types'
+import { createDemoState, normalizeState } from './data'
 
 const STORAGE_KEY = 'selo-budget:v1'
 const API = `${import.meta.env.BASE_URL}api`
@@ -10,6 +10,9 @@ export type Action =
   | { type: 'update'; tx: Transaction }
   | { type: 'delete'; id: string }
   | { type: 'restore'; tx: Transaction }
+  | { type: 'addRecurring'; item: Recurring }
+  | { type: 'updateRecurring'; item: Recurring }
+  | { type: 'deleteRecurring'; id: string }
   | { type: 'setBudget'; categoryId: string; amount: number }
   | { type: 'reset' }
 
@@ -38,6 +41,15 @@ function reducer(state: State, action: InternalAction): State {
       }
     case 'delete':
       return { ...state, transactions: state.transactions.filter((t) => t.id !== action.id) }
+    case 'addRecurring':
+      return { ...state, recurring: [...state.recurring, action.item] }
+    case 'updateRecurring':
+      return {
+        ...state,
+        recurring: state.recurring.map((r) => (r.id === action.item.id ? action.item : r)),
+      }
+    case 'deleteRecurring':
+      return { ...state, recurring: state.recurring.filter((r) => r.id !== action.id) }
     case 'setBudget':
       return { ...state, budgets: { ...state.budgets, [action.categoryId]: action.amount } }
     case 'reset':
@@ -49,8 +61,12 @@ function loadLocal(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const parsed = JSON.parse(raw) as State
-      if (Array.isArray(parsed.transactions) && parsed.budgets) return parsed
+      const parsed = JSON.parse(raw) as Partial<State>
+      if (Array.isArray(parsed.transactions) && parsed.budgets) {
+        // Saved before monthly items existed: start fresh so the sample shows them.
+        if (!Array.isArray(parsed.recurring)) return createDemoState()
+        return normalizeState(parsed)
+      }
     }
   } catch {
     // Storage blocked or corrupted: fall back to demo data.
@@ -84,15 +100,23 @@ export function useBudgetStore() {
         if (!res.ok || !type.includes('application/json')) throw new Error('No API')
         const remote = (await res.json()) as State & { seeded: boolean }
         if (cancelled) return
-        if (remote.seeded) {
-          rawDispatch({ type: 'load', state: { transactions: remote.transactions, budgets: remote.budgets } })
-        } else {
+        let next: State
+        if (!remote.seeded) {
           // Fresh database: fill it with the sample data so the app isn't empty.
-          const demo = createDemoState()
-          await request('PUT', '/state', demo)
-          rawDispatch({ type: 'load', state: demo })
+          next = createDemoState()
+          await request('PUT', '/state', next)
+        } else {
+          next = normalizeState(remote)
+          // Data from an older version (old categories): save the converted copy.
+          const changed =
+            JSON.stringify(next.budgets) !== JSON.stringify(remote.budgets) ||
+            next.transactions.some((t, i) => t.categoryId !== remote.transactions[i]?.categoryId) ||
+            next.recurring.some((r, i) => r.categoryId !== remote.recurring?.[i]?.categoryId)
+          if (changed) await request('PUT', '/state', next)
         }
-        if (!cancelled) setStorage('server')
+        if (cancelled) return
+        rawDispatch({ type: 'load', state: next })
+        setStorage('server')
       } catch {
         if (!cancelled) setStorage('local')
       }
@@ -135,6 +159,18 @@ export function useBudgetStore() {
         case 'delete':
           rawDispatch(action)
           sync(request('DELETE', `/transactions/${action.id}`))
+          break
+        case 'addRecurring':
+          rawDispatch(action)
+          sync(request('POST', '/recurring', action.item))
+          break
+        case 'updateRecurring':
+          rawDispatch(action)
+          sync(request('PUT', `/recurring/${action.item.id}`, action.item))
+          break
+        case 'deleteRecurring':
+          rawDispatch(action)
+          sync(request('DELETE', `/recurring/${action.id}`))
           break
         case 'setBudget': {
           rawDispatch(action)

@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Plus, RotateCcw } from 'lucide-react'
-import type { MonthKey } from '../types'
+import { ChevronLeft, ChevronRight, Minus, Plus, RotateCcw } from 'lucide-react'
+import type { MonthKey, TxType } from '../types'
 import { formatMoney, monthName, shiftMonth } from '../format'
 
 interface RailProps {
@@ -7,7 +7,7 @@ interface RailProps {
   selected: MonthKey
   current: MonthKey
   onSelect: (m: MonthKey) => void
-  onAdd: () => void
+  onAdd: (type: TxType) => void
   onReset: () => void
   storageNote: string
 }
@@ -71,11 +71,28 @@ export function Rail({ months, selected, current, onSelect, onAdd, onReset, stor
         </ol>
       </nav>
 
-      <button type="button" className="add-btn" onClick={onAdd} aria-keyshortcuts="n" aria-label="Add transaction">
-        <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
-        <span>Add transaction</span>
-        <kbd aria-hidden="true">N</kbd>
-      </button>
+      <div className="add-group">
+        <button
+          type="button"
+          className="add-btn add-income"
+          onClick={() => onAdd('income')}
+          aria-keyshortcuts="i"
+          aria-label="New income"
+        >
+          <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
+          <span>Income</span>
+        </button>
+        <button
+          type="button"
+          className="add-btn add-expense"
+          onClick={() => onAdd('expense')}
+          aria-keyshortcuts="n"
+          aria-label="New expense"
+        >
+          <Minus size={18} strokeWidth={2.5} aria-hidden="true" />
+          <span>Expense</span>
+        </button>
+      </div>
 
       <div className="rail-foot">
         <p aria-live="polite">{storageNote}</p>

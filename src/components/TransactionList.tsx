@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Search, X } from 'lucide-react'
+import { Repeat, Search, X } from 'lucide-react'
 import type { Transaction } from '../types'
 import { CATEGORY_BY_ID } from '../data'
 import { longDate, postmarkParts, signedMoney } from '../format'
@@ -14,6 +14,8 @@ interface Props {
   categoryFilter: string | null
   monthLabel: string
   selectedId: string | null
+  /** YYYY-MM-DD; rows after this are shown as upcoming */
+  today: string
   onQuery: (q: string) => void
   onTypeFilter: (t: TypeFilter) => void
   onClearCategory: () => void
@@ -30,6 +32,7 @@ export function TransactionList({
   categoryFilter,
   monthLabel,
   selectedId,
+  today,
   onQuery,
   onTypeFilter,
   onClearCategory,
@@ -115,9 +118,9 @@ export function TransactionList({
               <li key={tx.id}>
                 <button
                   type="button"
-                  className={`tx${selectedId === tx.id ? ' is-selected' : ''}`}
+                  className={`tx${selectedId === tx.id ? ' is-selected' : ''}${tx.date > today ? ' is-upcoming' : ''}`}
                   onClick={() => onSelect(tx)}
-                  aria-label={`${tx.description}, ${c?.name ?? 'Uncategorised'}, ${longDate(tx.date)}, ${signedMoney(tx.amount, tx.type)}. Edit`}
+                  aria-label={`${tx.description}, ${c?.name ?? 'Uncategorised'}, ${longDate(tx.date)}${tx.recurringId ? ', every month' : ''}${tx.date > today ? ', upcoming' : ''}, ${signedMoney(tx.amount, tx.type)}. Edit`}
                 >
                   <span className="tx-date" aria-hidden="true">
                     <b>{pm.day}</b>
@@ -128,6 +131,13 @@ export function TransactionList({
                     <span className="tx-cat">
                       <i style={{ background: c?.color }} aria-hidden="true" />
                       {c?.name ?? 'Uncategorised'}
+                      {tx.recurringId && (
+                        <span className="tag">
+                          <Repeat size={12} strokeWidth={2.5} aria-hidden="true" />
+                          Monthly
+                        </span>
+                      )}
+                      {tx.date > today && <span className="tag tag-soft">Upcoming</span>}
                     </span>
                   </span>
                   <span className={`tx-amt${tx.type === 'income' ? ' is-in' : ''}`}>

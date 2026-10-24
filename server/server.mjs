@@ -28,6 +28,16 @@ export function openDb(path) {
       category_id TEXT PRIMARY KEY,
       amount REAL NOT NULL CHECK (amount >= 0)
     );
+    CREATE TABLE IF NOT EXISTS recurring (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
+      amount REAL NOT NULL CHECK (amount > 0),
+      description TEXT NOT NULL,
+      category_id TEXT NOT NULL,
+      day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 31),
+      start_month TEXT NOT NULL,
+      end_month TEXT
+    );
     CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `)
   return db
@@ -60,6 +70,22 @@ function validateTx(body, id) {
   return tx
 }
 
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
+
+function validateRecurring(body, id) {
+  // Same rules as a transaction for the shared fields; a placeholder date satisfies that check.
+  const base = validateTx({ ...body, date: '2000-01-01' }, id)
+  const day = Number(body?.day)
+  if (!Number.isInteger(day) || day < 1 || day > 31) throw new HttpError(400, 'day must be 1–31')
+  const startMonth = body?.startMonth
+  const endMonth = body?.endMonth ?? null
+  if (typeof startMonth !== 'string' || !MONTH_RE.test(startMonth)) throw new HttpError(400, 'startMonth must be YYYY-MM')
+  if (endMonth !== null && (typeof endMonth !== 'string' || !MONTH_RE.test(endMonth)))
+    throw new HttpError(400, 'endMonth must be YYYY-MM or null')
+  const { date: _date, ...fields } = base
+  return { ...fields, day, startMonth, endMonth }
+}
+
 function validateBudget(amount) {
   const n = Number(amount)
   if (!Number.isFinite(n) || n < 0 || n > 1_000_000) throw new HttpError(400, 'amount must be between 0 and 1,000,000')
@@ -82,26 +108,44 @@ export function createApi(db) {
     upsertBudget: db.prepare(
       'INSERT INTO budgets (category_id, amount) VALUES (?, ?) ON CONFLICT (category_id) DO UPDATE SET amount = excluded.amount',
     ),
+    allRecurring: db.prepare(
+      'SELECT id, type, amount, description, category_id AS categoryId, day, start_month AS startMonth, end_month AS endMonth FROM recurring ORDER BY day, id',
+    ),
+    insertRecurring: db.prepare(
+      'INSERT INTO recurring (id, type, amount, description, category_id, day, start_month, end_month) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    ),
+    updateRecurring: db.prepare(
+      'UPDATE recurring SET type = ?, amount = ?, description = ?, category_id = ?, day = ?, start_month = ?, end_month = ? WHERE id = ?',
+    ),
+    deleteRecurring: db.prepare('DELETE FROM recurring WHERE id = ?'),
   }
+
+  const insertRec = (r) =>
+    q.insertRecurring.run(r.id, r.type, r.amount, r.description, r.categoryId, r.day, r.startMonth, r.endMonth)
 
   const state = () => ({
     seeded: !!q.seeded.get(),
     transactions: q.allTx.all(),
     budgets: Object.fromEntries(q.allBudgets.all().map((b) => [b.categoryId, b.amount])),
+    recurring: q.allRecurring.all(),
   })
 
   const replaceAll = (body) => {
     if (!Array.isArray(body?.transactions) || typeof body?.budgets !== 'object' || body.budgets === null)
       throw new HttpError(400, 'Body must have transactions[] and budgets{}')
     const txs = body.transactions.map((t) => validateTx(t))
+    if (body.recurring !== undefined && !Array.isArray(body.recurring))
+      throw new HttpError(400, 'recurring must be an array')
+    const recs = (body.recurring ?? []).map((r) => validateRecurring(r))
     const budgets = Object.entries(body.budgets).map(([id, amount]) => {
       if (!ID_RE.test(id)) throw new HttpError(400, 'Invalid budget category')
       return [id, validateBudget(amount)]
     })
     db.exec('BEGIN')
     try {
-      db.exec('DELETE FROM transactions; DELETE FROM budgets;')
+      db.exec('DELETE FROM transactions; DELETE FROM budgets; DELETE FROM recurring;')
       for (const t of txs) q.insertTx.run(t.id, t.type, t.amount, t.description, t.categoryId, t.date)
+      for (const r of recs) insertRec(r)
       for (const [id, amount] of budgets) q.upsertBudget.run(id, amount)
       q.markSeeded.run()
       db.exec('COMMIT')
@@ -137,6 +181,27 @@ export function createApi(db) {
     if (txMatch && method === 'DELETE') {
       const r = q.deleteTx.run(txMatch[1])
       if (r.changes === 0) throw new HttpError(404, 'Transaction not found')
+      return [204, null]
+    }
+    if (method === 'POST' && path === '/api/recurring') {
+      const r = validateRecurring(body)
+      try {
+        insertRec(r)
+      } catch {
+        throw new HttpError(409, 'A monthly item with this id already exists')
+      }
+      return [201, r]
+    }
+    const recMatch = path.match(/^\/api\/recurring\/([\w-]{1,64})$/)
+    if (recMatch && method === 'PUT') {
+      const r = validateRecurring(body, recMatch[1])
+      const res = q.updateRecurring.run(r.type, r.amount, r.description, r.categoryId, r.day, r.startMonth, r.endMonth, r.id)
+      if (res.changes === 0) throw new HttpError(404, 'Monthly item not found')
+      return [200, r]
+    }
+    if (recMatch && method === 'DELETE') {
+      const res = q.deleteRecurring.run(recMatch[1])
+      if (res.changes === 0) throw new HttpError(404, 'Monthly item not found')
       return [204, null]
     }
     const budgetMatch = path.match(/^\/api\/budgets\/([\w-]{1,64})$/)

@@ -23,14 +23,14 @@ The sidebar always says where your data is being saved. Sample data loads on fir
 
 ## Features
 
-- Add, edit and delete income and expenses (amount, description, category, date)
-- Delete with **Undo**
-- Monthly budgets per category, editable in place
-- "Left to spend" headline with a daily allowance for the rest of the month
-- Month navigation with remaining amount per month
+- **Monthly items:** set salary, rent or subscriptions once and they're added to every month automatically. Edit one to change every month, or stop it from a given month (earlier months keep it).
+- **Quick adding:** separate Income and Expense buttons, tap a category, the note is optional, and the date defaults to today. Tick "Repeat every month" to make it a monthly item.
+- **Clear month view:** what's left to spend, a daily allowance for the rest of the month, and income vs expenses for the month
+- Six spending categories with monthly budgets drawn as postage stamps; going over cancels the stamp with a postmark
+- Edit or delete any entry, with **Undo**
 - Search, filter by type, or click a stamp to filter by category
-- Form validation with clear error messages
-- Keyboard shortcut: press **N** to add a transaction
+- Upcoming entries later in the month are marked as such
+- Keyboard shortcuts: **N** for a new expense, **I** for a new income
 - Responsive from phone to desktop, accessible labels and focus states, respects reduced motion
 
 ## Run with Docker (saves to a database)
@@ -50,6 +50,9 @@ Open http://localhost:8080. The database lives in the `selo-data` Docker volume,
 | `POST` | `/api/transactions` | Add a transaction |
 | `PUT` | `/api/transactions/:id` | Update a transaction |
 | `DELETE` | `/api/transactions/:id` | Delete a transaction |
+| `POST` | `/api/recurring` | Add a monthly item |
+| `PUT` | `/api/recurring/:id` | Update or stop a monthly item |
+| `DELETE` | `/api/recurring/:id` | Delete a monthly item |
 | `PUT` | `/api/budgets/:categoryId` | Set a category budget |
 | `GET` | `/api/health` | Health check |
 
@@ -121,4 +124,5 @@ src/
     Stamp.tsx             category budget stamp + postmark
     Composer.tsx          add / edit transaction form
     TransactionList.tsx   searchable, filterable list
+    MonthlyList.tsx       the "Every month" section
 ```

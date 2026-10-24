@@ -28,7 +28,7 @@ const tx = { id: 't1', type: 'expense', amount: 12.5, description: 'Coffee', cat
 test('starts empty and unseeded', async () => {
   const { status, data } = await call('GET', '/api/state')
   assert.equal(status, 200)
-  assert.deepEqual(data, { seeded: false, transactions: [], budgets: {} })
+  assert.deepEqual(data, { seeded: false, transactions: [], budgets: {}, recurring: [] })
 })
 
 test('replaces the whole state and marks it seeded', async () => {
@@ -77,4 +77,26 @@ test('a failed state replace leaves the data untouched', async () => {
   assert.equal(bad.status, 400)
   const afterState = await call('GET', '/api/state')
   assert.deepEqual(afterState.data, before.data)
+})
+
+test('creates, updates and deletes a monthly item', async () => {
+  const rent = { id: 'r1', type: 'expense', amount: 650, description: 'Rent', categoryId: 'home', day: 2, startMonth: '2026-08', endMonth: null }
+  assert.equal((await call('POST', '/api/recurring', rent)).status, 201)
+  assert.equal((await call('POST', '/api/recurring', rent)).status, 409)
+
+  const stopped = await call('PUT', '/api/recurring/r1', { ...rent, endMonth: '2026-10' })
+  assert.equal(stopped.status, 200)
+  const state = await call('GET', '/api/state')
+  assert.deepEqual(state.data.recurring, [{ ...rent, endMonth: '2026-10' }])
+
+  assert.equal((await call('POST', '/api/recurring', { ...rent, id: 'r2', day: 40 })).status, 400)
+  assert.equal((await call('POST', '/api/recurring', { ...rent, id: 'r3', startMonth: '2026-13' })).status, 400)
+  assert.equal((await call('DELETE', '/api/recurring/r1')).status, 204)
+  assert.equal((await call('DELETE', '/api/recurring/r1')).status, 404)
+})
+
+test('replacing the state includes monthly items', async () => {
+  const salary = { id: 's1', type: 'income', amount: 1850, description: 'Salary', categoryId: 'salary', day: 1, startMonth: '2026-08', endMonth: null }
+  const { data } = await call('PUT', '/api/state', { transactions: [], budgets: {}, recurring: [salary] })
+  assert.deepEqual(data.recurring, [salary])
 })
